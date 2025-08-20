@@ -42,15 +42,16 @@ router.get('/slots', auth, async (req, res) => {
 
 // Create booking request (public)
 router.post('/request', async (req, res) => {
-  const { name, phone, slot_id, details, occasion_type, utility_type, payment_mode, customer_count } = req.body;
+  const { name, phone, slot_id, details, occasion_type, utility_type, payment_mode, advance_amount, date, time } = req.body;
   try {
     await pool.query(
-      'INSERT INTO booking_requests (name, phone, slot_id, details, status, occasion_type, utility_type, payment_mode, customer_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, phone, slot_id, details, 'pending', occasion_type, utility_type, payment_mode, customer_count]
+      'INSERT INTO booking_requests (name, phone, slot_id, details, status, occasion_type, utility_type, payment_mode, advance_amount, date, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, phone, slot_id, details, 'pending', occasion_type, utility_type, payment_mode, advance_amount, date, time]
     );
     res.json({ message: 'Request submitted' });
-  } catch {
-    res.status(500).json({ message: 'Server error' });
+  } catch (err) {
+    console.error('Booking request error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
