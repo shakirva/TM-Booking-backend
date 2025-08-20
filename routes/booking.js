@@ -76,4 +76,14 @@ router.put('/requests/:id', auth, async (req, res) => {
   }
 });
 
+// Delete booking request (admin/staff)
+router.delete('/requests/:id', auth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM booking_requests WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Booking deleted' });
+  } catch {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router;
