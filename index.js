@@ -12,8 +12,9 @@ app.use(cors({
   origin: [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://tm-booking-frontend-lxqyq4kp6-shakirvas-projects.vercel.app",
-    "https://tm-booking-frontend.vercel.app"
+    // "https://tm-booking-frontend-lxqyq4kp6-shakirvas-projects.vercel.app",
+    // "https://tm-booking-frontend.vercel.app",
+    "https://tmbooking.sygmetiv.com"
   ],
   credentials: true,
 }));

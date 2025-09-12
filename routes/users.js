@@ -7,6 +7,17 @@ const router = express.Router();
 const JWT_SECRET = 'your_jwt_secret';
 
 function auth(req, res, next) {
+// Delete user (admin only)
+router.delete('/:id', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+  const userId = req.params.id;
+  try {
+    await pool.query('DELETE FROM users WHERE id = ?', [userId]);
+    res.json({ message: 'User deleted' });
+  } catch {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'No token' });
   try {

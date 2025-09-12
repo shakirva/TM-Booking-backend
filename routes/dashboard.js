@@ -23,7 +23,9 @@ router.get('/summary', auth, async (req, res) => {
     const [[{ total_bookings }]] = await pool.query('SELECT COUNT(*) as total_bookings FROM booking_requests');
     const [[{ total_slots }]] = await pool.query('SELECT COUNT(*) as total_slots FROM booking_slots');
     const [[{ total_users }]] = await pool.query('SELECT COUNT(*) as total_users FROM users');
-    res.json({ total_bookings, total_slots, total_users });
+    // Count distinct customer names as total_customers
+    const [[{ total_customers }]] = await pool.query('SELECT COUNT(DISTINCT name) as total_customers FROM booking_requests');
+    res.json({ total_bookings, total_slots, total_users, total_customers });
   } catch {
     res.status(500).json({ message: 'Server error' });
   }

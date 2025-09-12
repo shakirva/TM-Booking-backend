@@ -44,6 +44,14 @@ router.get('/slots', auth, async (req, res) => {
 router.post('/request', async (req, res) => {
   const { name, phone, slot_id, details, occasion_type, utility_type, payment_mode, advance_amount, date, time } = req.body;
   try {
+    // Check for existing booking for the same date and slot
+    const [existing] = await pool.query(
+      'SELECT * FROM booking_requests WHERE date = ? AND slot_id = ?',
+      [date, slot_id]
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({ message: 'This date and slot are already booked.' });
+    }
     await pool.query(
       'INSERT INTO booking_requests (name, phone, slot_id, details, status, occasion_type, utility_type, payment_mode, advance_amount, date, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [name, phone, slot_id, details, 'pending', occasion_type, utility_type, payment_mode, advance_amount, date, time]
