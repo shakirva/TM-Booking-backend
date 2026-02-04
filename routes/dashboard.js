@@ -31,4 +31,40 @@ router.get('/summary', auth, async (req, res) => {
   }
 });
 
+// Get upcoming events for dashboard - ordered by Event Date ascending
+// Fields: Event Date, Customer Name, Primary Phone, Remarks
+router.get('/upcoming-events', auth, async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const [rows] = await pool.query(`
+      SELECT 
+        id,
+        date as event_date,
+        customer_name,
+        name,
+        phone as primary_phone,
+        customer_phone,
+        remarks
+      FROM booking_requests
+      WHERE date >= ?
+      ORDER BY date ASC
+      LIMIT 10
+    `, [today]);
+    
+    // Normalize field names
+    const events = rows.map(row => ({
+      id: row.id,
+      event_date: row.event_date,
+      customer_name: row.customer_name || row.name || '-',
+      primary_phone: row.primary_phone || row.customer_phone || '-',
+      remarks: row.remarks || ''
+    }));
+    
+    res.json(events);
+  } catch (err) {
+    console.error('Fetch upcoming events error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router;
