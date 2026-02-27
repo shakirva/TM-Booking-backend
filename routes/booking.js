@@ -120,8 +120,8 @@ router.post('/slots', auth, async (req, res) => {
   }
 });
 
-// Get all slots (admin/staff)
-router.get('/slots', auth, async (req, res) => {
+// Get all slots (public - no auth required for booking page)
+router.get('/slots', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM booking_slots WHERE time IN (\'Lunch\', \'Reception\') ORDER BY id');
     // Transform to frontend format
