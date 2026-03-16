@@ -489,4 +489,19 @@ router.get('/deleted', auth, async (req, res) => {
   }
 });
 
+// Permanently delete from deleted_bookings log (admin only)
+router.delete('/deleted/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await pool.query('DELETE FROM deleted_bookings WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Deleted booking not found' });
+    }
+    res.json({ message: 'Booking permanently deleted from log' });
+  } catch (err) {
+    console.error('Permanent delete error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router;
