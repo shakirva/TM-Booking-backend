@@ -191,18 +191,23 @@ router.post('/request', async (req, res) => {
     if (!slotRows.length) {
       return res.status(400).json({ message: 'Invalid slot selected.' });
     }
-    
     const slotName = slotRows[0].time;
-    
-    // Only allow Lunch or Reception
-    if (!['Lunch', 'Reception'].includes(slotName)) {
-      return res.status(400).json({ message: 'Invalid slot. Only Lunch or Reception allowed.' });
-    }
 
     // ================== PRICE CALCULATION WITH NIGHT ==================
     
     const nightValue = (night === true || night === 'Yes' || night === 'yes' || night === 1) ? 'Yes' : 'No';
     const includeNight = nightValue === 'Yes';
+
+    // Check if Night is already booked on this date by another request
+    if (includeNight) {
+      const [existingNight] = await pool.query(
+        "SELECT * FROM booking_requests WHERE date = ? AND night = 'Yes'",
+        [date]
+      );
+      if (existingNight.length > 0) {
+        return res.status(409).json({ message: 'Night option is already booked for another event on this date.' });
+      }
+    }
     
     const { slotPrice, nightPrice, totalAmount } = await calculateTotalAmount(slotName, date, includeNight);
 
@@ -413,18 +418,34 @@ router.put('/requests/:id', auth, async (req, res) => {
       }
     }
 
-    // Recalculate total if night value changes
-    if (payload.night !== undefined && payload.date) {
-      const [existingBooking] = await pool.query('SELECT slot_id, date FROM booking_requests WHERE id = ?', [bookingId]);
+    // Recalculate total and check availability if night value or date changes
+    if (payload.night !== undefined || payload.date !== undefined) {
+      const [existingBooking] = await pool.query('SELECT slot_id, date, night FROM booking_requests WHERE id = ?', [bookingId]);
       if (existingBooking.length > 0) {
+        const targetDate = payload.date || existingBooking[0].date;
+        const rawNight = payload.night !== undefined ? payload.night : existingBooking[0].night;
+        const nightValue = (rawNight === true || rawNight === 'Yes' || rawNight === 'yes') ? 'Yes' : 'No';
+
+        // Check if Night is already booked by another booking on targetDate
+        if (nightValue === 'Yes') {
+          const [nightConflict] = await pool.query(
+            "SELECT id FROM booking_requests WHERE date = ? AND night = 'Yes' AND id != ?",
+            [targetDate, bookingId]
+          );
+          if (nightConflict.length > 0) {
+            return res.status(400).json({ message: 'Night option is already booked for another event on this date.' });
+          }
+        }
+
         const [slotRows] = await pool.query('SELECT time FROM booking_slots WHERE id = ?', [existingBooking[0].slot_id]);
         if (slotRows.length > 0) {
           const slotName = slotRows[0].time;
-          const nightValue = (payload.night === true || payload.night === 'Yes' || payload.night === 'yes') ? 'Yes' : 'No';
-          const { totalAmount } = await calculateTotalAmount(slotName, payload.date || existingBooking[0].date, nightValue === 'Yes');
+          const { totalAmount } = await calculateTotalAmount(slotName, targetDate, nightValue === 'Yes');
           
-          updates.push('total_amount = ?');
-          values.push(totalAmount);
+          if (!payload.total_amount) {
+            updates.push('total_amount = ?');
+            values.push(totalAmount);
+          }
         }
       }
     }
